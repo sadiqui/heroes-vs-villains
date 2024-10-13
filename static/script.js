@@ -199,37 +199,53 @@ async function initializeHeroes() {
         const characters = event.target.value.toLowerCase();
         const type = select.value;
         const filteredHeroes = heroes.filter((hero) => {
+            // Numerical fields (e.g., powerstats like intelligence, strength)
             if (attributes.numerical.includes(type)) {
-                return hero.powerstats[type] == characters
-            } else if (attributes.s1.includes(type) || attributes.s2.includes(type)) {
-                return hero[type].toLowerCase().includes(characters)
-            } else if (attributes.s3.includes(type)) {
-                return hero.biography[type].toLowerCase().includes(characters)
-            } else if (attributes.m1.includes(type)) {
+                return hero.powerstats[type] == characters;
+            } 
+            // Textual fields in the hero object (e.g., name)
+            else if (attributes.s1.includes(type)) {
+                if (type === "name") {
+                    return hero[type] && hero[type].toLowerCase().includes(characters);
+                } else if (type === "fullName") {
+                    return hero.biography[type] && hero.biography[type].toLowerCase().includes(characters);
+                }
+            } 
+            // Textual fields in the appearance object (e.g., race, gender)
+            else if (attributes.s2.includes(type)) {
+                return hero.appearance[type] && hero.appearance[type].toLowerCase().includes(characters);
+            } 
+            // Textual fields in the biography object (e.g., placeOfBirth, alignment)
+            else if (attributes.s3.includes(type)) {
+                return hero.biography[type] && hero.biography[type].toLowerCase().includes(characters);
+            } 
+            // Multi-part fields in the appearance object (e.g., height, weight)
+            else if (attributes.m1.includes(type)) {
                 if (hero.appearance[type][1] !== undefined) {
-                    return hero.appearance[type][1].toLowerCase().includes(characters)
+                    return hero.appearance[type][1].toLowerCase().includes(characters);
                 }
             }
-            return false
+            return false;
         });
+    
         let table = document.querySelector("tbody");
-
+    
         if (table !== null) table.remove();
-
+    
         value = filteredHeroes.length;
-
+    
         if (characters === "") {
             currentPage = 1;
             value = 20;
             document.querySelector("#size-options").value = "20";
         }
-
+    
         renderTable(filteredHeroes, value);
         sortHeroes = filteredHeroes;
         document
             .querySelectorAll("#heroesTable thead tr th")
             .forEach((e) => e.addEventListener("click", sortTable));
-    });
+    });    
 
     value = pageSize;
     renderTable(heroes, value);
