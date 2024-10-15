@@ -11,12 +11,12 @@ async function fetchHeroes() {
     }
 }
 
-let sortHeroes;
-let sortedHeroes;
-
 // Render the table with heroes data and display it
 const renderTable = (list, value) => {
-    let table = document.createElement("table");
+    let table = document.querySelector("tbody");
+    // Avoid rendering multiple tables
+    if (table !== null) table.remove();
+    table = document.createElement("table");
     table.setAttribute("id", "heroesTable");
     for (let i = 0; i < value; i++) {
         let row = table.insertRow(i);
@@ -31,7 +31,7 @@ const renderTable = (list, value) => {
         row.insertCell(8).innerHTML = list[i].powerstats.combat;
         row.insertCell(9).innerHTML = list[i].appearance.race;
         row.insertCell(10).innerHTML = list[i].appearance.gender;
-        row.insertCell(11).innerHTML = list[i].appearance.height[1]; // cm
+        row.insertCell(11).innerHTML = list[i].appearance.height[1]; // cm || meters
         row.insertCell(12).innerHTML = list[i].appearance.weight[1]; // kg || tons
         row.insertCell(13).innerHTML = list[i].biography.placeOfBirth;
         row.insertCell(14).innerHTML = list[i].biography.alignment;
@@ -69,8 +69,6 @@ const validateImage = (x) => {
 // Initialize and load superheroes data into the web page
 async function initializeHeroes() {
     let heroes = await fetchHeroes();
-    sortHeroes = heroes;
-
     let size = document.getElementById("size-options");
     let value = size.options[size.selectedIndex].text;
     let pageSize = value;
@@ -78,11 +76,6 @@ async function initializeHeroes() {
 
     size.addEventListener("change", (event) => {
         value = event.target.value;
-        let table = document.querySelector("tbody");
-
-        // Avoid rendering multiple tables
-        if (table !== null) table.remove();
-
         renderTable(heroes, value);
         pageSize = value;
         currentPage = 1;
@@ -91,13 +84,7 @@ async function initializeHeroes() {
     const previousPage = () => {
         if (currentPage > 1) {
             currentPage--;
-
             let newArray = heroes.slice((currentPage * pageSize) - pageSize, (currentPage * pageSize));
-            let table = document.querySelector("tbody");
-
-            // Avoid rendering multiple tables
-            if (table !== null) table.remove();
-
             value = pageSize;
             renderTable(newArray, value);
         };
@@ -107,13 +94,7 @@ async function initializeHeroes() {
         if (currentPage <= heroes.length / pageSize) {
             if ((currentPage * pageSize) < heroes.length) currentPage++;
             let newArray = heroes.slice((currentPage * pageSize) - pageSize, (currentPage * pageSize));
-            let table = document.querySelector("tbody");
-
-            // Avoid rendering multiple tables
-            if (table !== null) table.remove();
-
             value = pageSize;
-
             // If we're on the last page, we don't render more heroes
             // As the number of heroes may be less than pageSize
             if (currentPage > heroes.length / pageSize) value = heroes.length % pageSize;
@@ -175,9 +156,9 @@ async function initializeHeroes() {
         const type = select.value;
         const filteredHeroes = heroes.filter((hero) => {
             // Numerical fields (e.g., powerstats like intelligence, strength)
-            if (attributes.numerical.includes(type)) {
-                return hero.powerstats[type] == characters;
-            } 
+            if (attributes.numerical.includes(type) && hero.powerstats[type]) {
+                return hero.powerstats[type] == characters; // exact match for UX
+            }
             // Textual fields in the hero object (e.g., name)
             else if (attributes.s1.includes(type)) {
                 if (type === "name") {
@@ -185,41 +166,33 @@ async function initializeHeroes() {
                 } else if (type === "fullName") {
                     return hero.biography[type] && hero.biography[type].toLowerCase().includes(characters);
                 }
-            } 
+            }
             // Textual fields in the appearance object (e.g., race, gender)
-            else if (attributes.s2.includes(type)) {
-                return hero.appearance[type] && hero.appearance[type].toLowerCase().includes(characters);
-            } 
+            else if (attributes.s2.includes(type) && hero.appearance[type]) {
+                return hero.appearance[type].toLowerCase().includes(characters);
+            }
             // Textual fields in the biography object (e.g., placeOfBirth, alignment)
-            else if (attributes.s3.includes(type)) {
-                return hero.biography[type] && hero.biography[type].toLowerCase().includes(characters);
-            } 
+            else if (attributes.s3.includes(type) && hero.biography[type]) {
+                return hero.biography[type].toLowerCase().includes(characters);
+            }
             // Multi-part fields in the appearance object (e.g., height, weight)
             else if (attributes.m1.includes(type)) {
                 if (hero.appearance[type][1] !== undefined) {
-                    return hero.appearance[type][1].toLowerCase().includes(characters);
+                    if (type === "height") {
+                        return formatHeight(hero.appearance[type][1]) == characters
+                    } else if (type === "weight") {
+                        return formatWeight(hero.appearance[type][1]) == characters
+                    }
                 }
             }
             return false;
         });
-    
-        let table = document.querySelector("tbody");
-    
-        if (table !== null) table.remove();
-    
+
         value = filteredHeroes.length;
-    
-        if (characters === "") {
-            currentPage = 1;
-            value = 20;
-            document.querySelector("#size-options").value = "20";
-        }
-    
         renderTable(filteredHeroes, value);
-        sortHeroes = filteredHeroes;
-        document
-            .querySelectorAll("#heroesTable thead tr th")
-            .forEach((e) => e.addEventListener("click", sortTable));
+        // document
+        //     .querySelectorAll("#heroesTable thead tr th")
+        //     .forEach((e) => e.addEventListener("click", sortTable));
     });    
 
     value = pageSize;
@@ -244,7 +217,7 @@ async function initializeHeroes() {
         event.target.setAttribute("data-order", newOrder);
     
         // Sort the heroes based on the column and order
-        sortedHeroes = heroes.sort((a, b) => {
+        let sortedHeroes = heroes.sort((a, b) => {
             if (column === "icon") {
                 return sortByIcon(a, b, newOrder);
             }
@@ -257,14 +230,10 @@ async function initializeHeroes() {
     
             return newOrder === "ascending" ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
         });
-    
-        // Remove and re-render sorted table
-        let tableBody = document.querySelector("tbody");
-        if (tableBody) tableBody.remove();
         renderTable(sortedHeroes, value);
     }
     
-    // Function to handle sorting specifically for the icon column
+    // Handle sorting for the icon column
     function sortByIcon(a, b, order) {
         const iconA = a.images.xs;
         const iconB = b.images.xs;
@@ -282,7 +251,7 @@ async function initializeHeroes() {
         }
     }
     
-    // Helper function to get the correct column value
+    // Get the correct column value
     function getColumnValue(hero, column) {
         if (hero.biography && hero.biography[column]) return hero.biography[column];
         if (hero.powerstats && hero.powerstats[column]) return hero.powerstats[column];
@@ -290,9 +259,9 @@ async function initializeHeroes() {
             if (Array.isArray(hero.appearance[column])) {
                 // Check if the column is 'height' or 'weight'
                 if (column === "height") {
-                    return formatHeight(hero.appearance[column][1]); // Assuming height is at index 1
+                    return formatHeight(hero.appearance[column][1]); // cm || meters
                 } else if (column === "weight") {
-                    return formatWeight(hero.appearance[column][1]); // Assuming weight is at index 1
+                    return formatWeight(hero.appearance[column][1]); // kg || tons
                 }
             } else {
                 return hero.appearance[column]; // Return directly if it's not an array
@@ -302,4 +271,4 @@ async function initializeHeroes() {
     }
 }
 
-initializeHeroes();
+initializeHeroes(); 

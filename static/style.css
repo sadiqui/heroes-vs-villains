@@ -13,6 +13,10 @@ table {
     color: #b0b3b8;
 }
 
+th {
+    cursor: pointer;
+}
+
 th, td {
     border: 1px solid #4a5058;
     padding: 8px;

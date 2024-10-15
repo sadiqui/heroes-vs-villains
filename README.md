@@ -28,12 +28,6 @@
 - Sort by name, powerstats, race, and other fields, with special handling for numerical values (e.g., weight).
 - Missing values are sorted last by default.
 
-## Authors
-
-- [Yasseir Faris](https://learn.zone01oujda.ma/git/yfaris)
-- [Abdelilah Sadiqui](https://learn.zone01oujda.ma/git/asadiqui)
-- [Mohamed Elfihry](https://learn.zone01oujda.ma/git/melfihry)
-
 ## License
 
 This project is open-sourced under [the MIT License](https://opensource.org/license/mit).
