@@ -102,45 +102,23 @@ async function initializeHeroes() {
         };
     };
 
-    document.querySelector("#nextButton").addEventListener("click", nextPage, false);
-    document.querySelector("#prevButton").addEventListener("click", previousPage, false);
+    document.querySelector("#nextButton").addEventListener("click", nextPage);
+    document.querySelector("#prevButton").addEventListener("click", previousPage);
 
     const attributes = {
-        unparseable: [
-            "icon",
-        ],
-        s1: [
-            "name",
-            "fullName",
-        ],
-        numerical: [
-            "intelligence",
-            "strength",
-            "speed",
-            "durability",
-            "power",
-            "combat",
-        ],
-        s2: [
-            "race",
-            "gender",
-        ],
-        m1: [
-            "height",
-            "weight",
-        ],
-        s3: [
-            "placeOfBirth",
-            "alignment",
-        ]
+        unparseable: ["icon"],
+        s1: ["name", "fullName"],
+        numerical: ["intelligence", "strength", "speed", "durability", "power", "combat"],
+        s2: ["race", "gender"],
+        m1: ["height", "weight"],
+        s3: ["placeOfBirth", "alignment"]
     };
 
     const headers = Object.values(attributes).flat();
-
     const searchBox = document.getElementById("search-input");
-    const controls = document.getElementById("controls")
     const select = document.getElementById("search-select");
 
+    // Set search field options
     for (let i = 1; i < headers.length; i++) {
         const opt = headers[i];
         const el = document.createElement("option");
@@ -149,98 +127,103 @@ async function initializeHeroes() {
         select.appendChild(el);
     }
 
-    controls.appendChild(select);
-
+    // search functionality
     searchBox.addEventListener("keyup", (event) => {
         const characters = event.target.value.toLowerCase();
         const type = select.value;
-        const filteredHeroes = heroes.filter((hero) => {
-            // Numerical fields (e.g., powerstats like intelligence, strength)
-            if (attributes.numerical.includes(type) && hero.powerstats[type]) {
-                return hero.powerstats[type] == characters; // exact match for UX
-            }
-            // Textual fields in the hero object (e.g., name)
-            else if (attributes.s1.includes(type)) {
-                if (type === "name") {
-                    return hero[type] && hero[type].toLowerCase().includes(characters);
-                } else if (type === "fullName") {
-                    return hero.biography[type] && hero.biography[type].toLowerCase().includes(characters);
+        let filteredHeroes = heroes
+        if (characters !== "") {
+            filteredHeroes = heroes.filter((hero) => {
+                // Numerical fields (e.g., powerstats like intelligence, strength)
+                if (attributes.numerical.includes(type) && hero.powerstats[type]) {
+                    return hero.powerstats[type] == characters; // exact match for UX
                 }
-            }
-            // Textual fields in the appearance object (e.g., race, gender)
-            else if (attributes.s2.includes(type) && hero.appearance[type]) {
-                return hero.appearance[type].toLowerCase().includes(characters);
-            }
-            // Textual fields in the biography object (e.g., placeOfBirth, alignment)
-            else if (attributes.s3.includes(type) && hero.biography[type]) {
-                return hero.biography[type].toLowerCase().includes(characters);
-            }
-            // Multi-part fields in the appearance object (e.g., height, weight)
-            else if (attributes.m1.includes(type)) {
-                if (hero.appearance[type][1] !== undefined) {
-                    if (type === "height") {
-                        return formatHeight(hero.appearance[type][1]) == characters
-                    } else if (type === "weight") {
-                        return formatWeight(hero.appearance[type][1]) == characters
+                // Textual fields in the hero object (e.g., name)
+                else if (attributes.s1.includes(type)) {
+                    if (type === "name") {
+                        return hero[type] && hero[type].toLowerCase().includes(characters);
+                    } else if (type === "fullName") {
+                        return hero.biography[type] && hero.biography[type].toLowerCase().includes(characters);
                     }
                 }
-            }
-            return false;
-        });
+                // Textual fields in the appearance object (e.g., race, gender)
+                else if (attributes.s2.includes(type) && hero.appearance[type]) {
+                    return hero.appearance[type].toLowerCase().includes(characters);
+                }
+                // Textual fields in the biography object (e.g., placeOfBirth, alignment)
+                else if (attributes.s3.includes(type) && hero.biography[type]) {
+                    return hero.biography[type].toLowerCase().includes(characters);
+                }
+                // Multi-part fields in the appearance object (e.g., height, weight)
+                else if (attributes.m1.includes(type)) {
+                    if (hero.appearance[type][1] !== undefined) {
+                        if (type === "height") {
+                            return formatHeight(hero.appearance[type][1]) == characters
+                        } else if (type === "weight") {
+                            return formatWeight(hero.appearance[type][1]) == characters
+                        }
+                    }
+                }
+                return false;
+            });
+            value = filteredHeroes.length;
+            renderTable(filteredHeroes, value);    
+        } else { // reset page if search input cleared
+            renderTable(heroes, 20);
+        }
 
-        value = filteredHeroes.length;
-        renderTable(filteredHeroes, value);
-        // document
-        //     .querySelectorAll("#heroesTable thead tr th")
-        //     .forEach((e) => e.addEventListener("click", sortTable));
-    });    
+        document // Sort filtered results (need improvment)
+            .querySelectorAll("#heroesTable thead tr th")
+            .forEach((e) => e.addEventListener("click", (event) => sortTable(event, filteredHeroes)));
+    });
 
     value = pageSize;
     renderTable(heroes, value);
-    
+
     let tableOne = document.querySelector("table");
     let header = tableOne.createTHead();
     let headerRow = header.insertRow(0);
-    
+
+    // Insert header cells
     for (let i = 0; i < headers.length; i++) {
         headerRow.insertCell(i).outerHTML = `<th data-column="${headers[i]}" data-order="descending">${headers[i]}</th>`;
     }
-    
-    document.querySelectorAll("th").forEach(e => e.addEventListener("click", sortTable));
-    
-    function sortTable(event) {
+
+    document.querySelectorAll("th").forEach(e => e.addEventListener("click", (event) => sortTable(event, heroes)));
+
+    function sortTable(event, list) {
         let column = event.target.getAttribute("data-column");
         let order = event.target.getAttribute("data-order");
-    
+
         // Toggle the sorting order
         let newOrder = order === "descending" ? "ascending" : "descending";
         event.target.setAttribute("data-order", newOrder);
-    
+
         // Sort the heroes based on the column and order
-        let sortedHeroes = heroes.sort((a, b) => {
+        let sortedHeroes = list.sort((a, b) => {
             if (column === "icon") {
                 return sortByIcon(a, b, newOrder);
             }
-    
+
             let valA = getColumnValue(a, column);
             let valB = getColumnValue(b, column);
-    
+
             if (valA == null || valA === "" || valA === "-") return 1;
             if (valB == null || valB === "" || valB === "-") return -1;
-    
+
             return newOrder === "ascending" ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
         });
         renderTable(sortedHeroes, value);
     }
-    
+
     // Handle sorting for the icon column
     function sortByIcon(a, b, order) {
         const iconA = a.images.xs;
         const iconB = b.images.xs;
-    
+
         const hasNoPortraitA = validateImage(iconA);
         const hasNoPortraitB = validateImage(iconB);
-    
+
         if (hasNoPortraitA && !hasNoPortraitB) {
             return 1; // a should be placed after b
         } else if (!hasNoPortraitA && hasNoPortraitB) {
@@ -250,7 +233,7 @@ async function initializeHeroes() {
             return order === "ascending" ? (parseInt(a.id) > parseInt(b.id) ? 1 : -1) : (parseInt(a.id) < parseInt(b.id) ? 1 : -1);
         }
     }
-    
+
     // Get the correct column value
     function getColumnValue(hero, column) {
         if (hero.biography && hero.biography[column]) return hero.biography[column];

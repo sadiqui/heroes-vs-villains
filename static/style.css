@@ -13,7 +13,7 @@ table {
     color: #b0b3b8;
 }
 
-th {
+select, button, th {
     cursor: pointer;
 }
 
