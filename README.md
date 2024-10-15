@@ -1,4 +1,4 @@
-<h2 align="center">Sortable</h2>
+<h2 align="center">Heroes :electron: Villains</h2>
 
 <p align="center">
   This project offers a web page that displays key information about superheroes, using sortable table, search functionality, and pagination to sift through the data efficiently.
@@ -27,6 +27,9 @@
 - Toggle between ascending and descending order with multiple clicks.
 - Sort by name, powerstats, race, and other fields, with special handling for numerical values (e.g., weight).
 - Missing values are sorted last by default.
+
+## User Interface
+![](static/images/screen.png)
 
 ## License
 
